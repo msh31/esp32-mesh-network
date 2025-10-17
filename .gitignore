@@ -1,0 +1,32 @@
+# CMake and Ninja build files
+**/build/
+**/CMakeFiles/
+**/CMakeCache.txt
+**/cmake_install.cmake
+**/Makefile
+**/build.ninja
+**/.ninja_log
+**/.ninja_deps
+
+# IDE index files and Clangd cache
+**/.cache/
+.cache/
+
+# Binary and ELF outputs
+**/*.elf
+**/*.bin
+**/*.map
+
+# Flashing and config artifacts
+**/flasher_args.json
+**/flash*.args
+**/project_description.json
+**/sdkconfig
+**/sdkconfig.old
+**/sdkconfig.ci
+**/config.env
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
