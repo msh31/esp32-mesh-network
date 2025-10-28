@@ -30,3 +30,6 @@
 __pycache__/
 *.pyc
 *.pyo
+
+# mac trash
+.DS_Store
