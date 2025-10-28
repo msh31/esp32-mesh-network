@@ -28,9 +28,9 @@ void on_data_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len)
     }
 
     printf("Type: %u, first data byte: %u\n", msg->type, msg->data[0]);
-
-    // info->src_addr contains the sender's MAC address
-    // data contains the message bytes
+    printf("Received from MAC: %02X:%02X:%02X:%02X:%02X:%02X\n",
+       info->src_addr[0], info->src_addr[1], info->src_addr[2],
+       info->src_addr[3], info->src_addr[4], info->src_addr[5]);
 }
 
 void app_main(void) {
