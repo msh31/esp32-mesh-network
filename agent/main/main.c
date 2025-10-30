@@ -42,6 +42,14 @@ void app_main(void) {
     printf("peer added!\n");
 
     while(true) {
+        Message msg;
+        msg.type = 0;
+
+        memset(msg.data, 0, sizeof(msg.data));
+
+        esp_now_send(peer.peer_addr, (uint8_t*)&msg, sizeof(msg));
+        printf("Sent discovery message\n");
         
+        vTaskDelay(pdMS_TO_TICKS(3000)); 
     }
 }
