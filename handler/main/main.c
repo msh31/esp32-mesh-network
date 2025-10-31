@@ -19,6 +19,33 @@ typedef struct {
     uint8_t data[63];
 } Message;
 
+struct Agent {
+    uint8_t mac[6];
+    uint32_t last_seen;
+    bool is_alive;
+};
+
+struct Agent agents[2];
+int agent_count = 0;
+
+bool add_agent(const uint8_t *mac) {
+    if(agent_count >= 2) {
+        printf("Max number of agents has been reached!\n");
+        return false;
+    }
+
+    for(int i = 0; i < agent_count; i++) {
+        if(memcmp(agents[i].mac, mac, 6) == 0) {
+            printf("This agent's mac address already exists!\n");
+            return false;
+        }
+    }
+    
+    memcpy(agents[agent_count].mac, mac, 6);
+    agent_count += 1;
+    return true;
+}
+
 void on_data_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len) {
     const Message *msg = (const Message *)data;
 
@@ -27,10 +54,15 @@ void on_data_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len)
         return;
     }
 
-    printf("Type: %u, first data byte: %u\n", msg->type, msg->data[0]);
-    printf("Received from MAC: %02X:%02X:%02X:%02X:%02X:%02X\n",
-       info->src_addr[0], info->src_addr[1], info->src_addr[2],
-       info->src_addr[3], info->src_addr[4], info->src_addr[5]);
+    if(msg->type == 0) {
+        if(add_agent(info->src_addr)) {
+            printf("New agent added! Mac Address: %02X:%02X:%02X:%02X:%02X:%02X\n",
+    info->src_addr[0], info->src_addr[1], info->src_addr[2],
+    info->src_addr[3], info->src_addr[4], info->src_addr[5]
+            );
+            // TODO: send acknowledgment
+        }
+    }
 }
 
 void app_main(void) {
