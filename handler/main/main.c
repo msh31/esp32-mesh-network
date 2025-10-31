@@ -69,9 +69,24 @@ void on_data_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len)
     info->src_addr[0], info->src_addr[1], info->src_addr[2],
     info->src_addr[3], info->src_addr[4], info->src_addr[5]
             );
-            // TODO: send acknowledgment
+            
+            esp_now_peer_info_t peer;
+            memset(&peer, 0, sizeof(peer));
+            memcpy(peer.peer_addr, info->src_addr, 6);
+            peer.channel = 0;
+            peer.encrypt = false;
+            esp_now_add_peer(&peer);
+
+            Message ack_msg;
+            ack_msg.type = 1;
+            memcpy(ack_msg.data, discovery_secret, strlen(discovery_secret));
+
+            esp_now_send(info->src_addr, (uint8_t*)&ack_msg, sizeof(ack_msg));
+            printf("Sent acknowledgment\n");
         }
     }
+
+    
 }
 
 void app_main(void) {
