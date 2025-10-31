@@ -18,6 +18,7 @@ typedef struct {
 } Message;
 
 const char *discovery_secret = "TkFLRURfU05BS0U=";
+bool is_connected = false;
 
 void on_data_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len) {
     const Message *msg = (const Message *)data;
@@ -39,7 +40,7 @@ void on_data_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len)
         }
 
         printf("Acknowledgment received from coordinator!\n");
-        // TODO: stop sending discovery messages, wait for commands
+        is_connected = true;
     }
 }
 
@@ -68,7 +69,7 @@ void app_main(void) {
 
     printf("peer added!\n");
 
-    while(true) {
+    while(!is_connected) {
         Message msg;
         msg.type = 0;
         memcpy(msg.data, discovery_secret, strlen(discovery_secret));
@@ -81,4 +82,6 @@ void app_main(void) {
         
         vTaskDelay(pdMS_TO_TICKS(3000)); 
     }
+
+    printf("connection with handler established!\n");
 }
