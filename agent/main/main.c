@@ -19,6 +19,30 @@ typedef struct {
 
 const char *discovery_secret = "TkFLRURfU05BS0U=";
 
+void on_data_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len) {
+    const Message *msg = (const Message *)data;
+
+    if(len != sizeof(Message)) {
+        printf("Received invalid message.");
+        return;
+    }
+
+    if(msg->type == 0) {
+        printf("well, this shouldn't have happened. closing the connection.");
+        return;
+    }
+
+    if(msg->type == 1) {
+        if(memcmp(msg->data, discovery_secret, strlen(discovery_secret)) != 0) {
+            printf("Invalid secret, rejecting agent\n");
+            return;
+        }
+
+        printf("Acknowledgment received from coordinator!\n");
+        // TODO: stop sending discovery messages, wait for commands
+    }
+}
+
 void app_main(void) {
     ESP_ERROR_CHECK(nvs_flash_init());
     ESP_ERROR_CHECK(esp_netif_init());
@@ -32,6 +56,7 @@ void app_main(void) {
     esp_wifi_start();
 
     ESP_ERROR_CHECK(esp_now_init());
+    esp_now_register_recv_cb(on_data_recv);
     printf("Wifi Initialized!\n");
 
     esp_now_peer_info_t peer;
