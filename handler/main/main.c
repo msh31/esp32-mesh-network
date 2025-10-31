@@ -27,6 +27,7 @@ struct Agent {
 
 struct Agent agents[2];
 int agent_count = 0;
+const char *discovery_secret = "TkFLRURfU05BS0U=";
 
 bool add_agent(const uint8_t *mac) {
     if(agent_count >= 2) {
@@ -55,6 +56,14 @@ void on_data_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len)
     }
 
     if(msg->type == 0) {
+        // printf("Received data: %.*s (length: %d)\n", (int)strlen(discovery_secret), msg->data, (int)strlen(discovery_secret));
+        // printf("Expected secret: %s (length: %zu)\n", discovery_secret, strlen(discovery_secret));
+
+        if(memcmp(msg->data, discovery_secret, strlen(discovery_secret)) != 0) {
+            printf("Invalid secret, rejecting agent\n");
+            return;
+        }
+
         if(add_agent(info->src_addr)) {
             printf("New agent added! Mac Address: %02X:%02X:%02X:%02X:%02X:%02X\n",
     info->src_addr[0], info->src_addr[1], info->src_addr[2],

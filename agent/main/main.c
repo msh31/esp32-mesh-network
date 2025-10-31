@@ -17,6 +17,8 @@ typedef struct {
     uint8_t data[63];
 } Message;
 
+const char *discovery_secret = "TkFLRURfU05BS0U=";
+
 void app_main(void) {
     ESP_ERROR_CHECK(nvs_flash_init());
     ESP_ERROR_CHECK(esp_netif_init());
@@ -44,8 +46,10 @@ void app_main(void) {
     while(true) {
         Message msg;
         msg.type = 0;
+        memcpy(msg.data, discovery_secret, strlen(discovery_secret));
+        // printf("Sending secret: %.*s (length: %zu)\n", (int)strlen(discovery_secret), msg.data, strlen(discovery_secret));
 
-        memset(msg.data, 0, sizeof(msg.data));
+        // memset(msg.data, 0, sizeof(msg.data));
 
         esp_now_send(peer.peer_addr, (uint8_t*)&msg, sizeof(msg));
         printf("Sent discovery message\n");
