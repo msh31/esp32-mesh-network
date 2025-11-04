@@ -137,4 +137,19 @@ void app_main(void) {
     esp_now_register_recv_cb(on_data_recv);
 
     printf("Wifi Initialized!\n");
+
+    while(true) {
+        for(int i = 0; i < agent_count; i++) {
+            //allow 3 missed beats before declaring deadd
+            if((xTaskGetTickCount() - agents[i].last_seen) > pdMS_TO_TICKS(15000)) {
+                printf("Agent (%02X:%02X:%02X:%02X:%02X:%02X) has passed on, may they rest in peace..\n\n",
+                    agents[i].mac[0], agents[i].mac[1], agents[i].mac[2],
+                    agents[i].mac[3], agents[i].mac[4], agents[i].mac[5]
+                );
+                agents[i].is_alive = false;
+            }
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(5000));
+    }
 }
