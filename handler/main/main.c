@@ -148,8 +148,8 @@ void app_main(void) {
                 );
                 agents[i].is_alive = false;
             }
-
-            vTaskDelay(pdMS_TO_TICKS(5000));
         }
+
+        vTaskDelay(pdMS_TO_TICKS(5000));
     }
 }
