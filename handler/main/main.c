@@ -95,7 +95,29 @@ void on_data_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len)
         return;
     }
 
+    if(msg->type == 2) {
+        if(agent_count == 0) {
+            printf("A type2 message was received, but the agent count is at: 0\n");
+            return;
+        }
 
+        for(int i = 0; i < agent_count; i++) {
+            if(memcmp(agents[i].mac, info->src_addr, 6) == 0) {
+                agents[i].last_seen = xTaskGetTickCount();
+                agents[i].is_alive = true;
+                printf("Agent (%02X:%02X:%02X:%02X:%02X:%02X) is alive!\n",
+                    info->src_addr[0], info->src_addr[1], info->src_addr[2],
+                    info->src_addr[3], info->src_addr[4], info->src_addr[5]
+                );
+                return;
+            }
+
+            printf("Unknown agent sent heartbeat, source address: %02X:%02X:%02X:%02X:%02X:%02X\n",
+                info->src_addr[0], info->src_addr[1], info->src_addr[2],
+                info->src_addr[3], info->src_addr[4], info->src_addr[5]
+            );
+        }
+    }
 }
 
 void app_main(void) {
