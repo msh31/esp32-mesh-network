@@ -75,13 +75,23 @@ void app_main(void) {
         memcpy(msg.data, discovery_secret, strlen(discovery_secret));
         // printf("Sending secret: %.*s (length: %zu)\n", (int)strlen(discovery_secret), msg.data, strlen(discovery_secret));
 
-        // memset(msg.data, 0, sizeof(msg.data));
-
         esp_now_send(peer.peer_addr, (uint8_t*)&msg, sizeof(msg));
         printf("Sent discovery message\n");
         
+        memset(msg.data, 0, sizeof(msg.data));
         vTaskDelay(pdMS_TO_TICKS(3000)); 
     }
 
     printf("connection with handler established!\n");
+
+    while(true) { 
+        Message msg = {0};
+        msg.type = 2;
+        
+        esp_now_send(peer.peer_addr, (uint8_t*)&msg, sizeof(msg));
+        printf("Sent heartbeat\n");
+        
+        vTaskDelay(pdMS_TO_TICKS(5000)); 
+    }
+
 }
