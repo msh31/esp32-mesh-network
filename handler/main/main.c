@@ -13,9 +13,9 @@
 #include "esp_event.h"
 
 // 64 bytes, 1 for the type, 3 for the data sent alongside
-// typedef is just an alias to we can use 'Message' instead of 'struct Message' 
+// typedef is just an alias to we can use 'Message' instead of 'struct Message'
 typedef struct {
-    uint8_t type; 
+    uint8_t type;
     uint8_t data[63];
 } Message;
 
@@ -41,7 +41,7 @@ bool add_agent(const uint8_t *mac) {
             return false;
         }
     }
-    
+
     memcpy(agents[agent_count].mac, mac, 6);
     agent_count += 1;
     return true;
@@ -69,7 +69,7 @@ void on_data_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len)
     info->src_addr[0], info->src_addr[1], info->src_addr[2],
     info->src_addr[3], info->src_addr[4], info->src_addr[5]
             );
-            
+
             esp_now_peer_info_t peer;
             memset(&peer, 0, sizeof(peer));
             memcpy(peer.peer_addr, info->src_addr, 6);
@@ -86,7 +86,15 @@ void on_data_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len)
         }
     }
 
-    
+    // handlers should NOT bbe able to RECEIVE a type1 message..
+    if(msg->type == 1) {
+        printf("What the flip? A type1 message was *received*.... source: %02X:%02X:%02X:%02X:%02X:%02X\n",
+info->src_addr[0], info->src_addr[1], info->src_addr[2],
+info->src_addr[3], info->src_addr[4], info->src_addr[5]
+        );
+    }
+
+
 }
 
 void app_main(void) {
