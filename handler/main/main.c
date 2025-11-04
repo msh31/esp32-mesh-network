@@ -55,6 +55,11 @@ void on_data_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len)
         return;
     }
 
+    if(msg->type > 2 || msg->type < 0) {
+        printf("Received invalid type.");
+        return;
+    }
+
     if(msg->type == 0) {
         // printf("Received data: %.*s (length: %d)\n", (int)strlen(discovery_secret), msg->data, (int)strlen(discovery_secret));
         // printf("Expected secret: %s (length: %zu)\n", discovery_secret, strlen(discovery_secret));
