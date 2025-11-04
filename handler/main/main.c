@@ -23,11 +23,16 @@ struct Agent {
     uint8_t mac[6];
     uint32_t last_seen;
     bool is_alive;
+    bool is_encrypted;
 };
 
 struct Agent agents[2];
 int agent_count = 0;
 const char *discovery_secret = "TkFLRURfU05BS0U=";
+uint8_t pmk[16] = {
+    0xF3, 0x26, 0xA5, 0xC3, 0x9C, 0xC0, 0x8E, 0xC0,
+    0x15, 0xAB, 0x90, 0x69, 0x8C, 0x7E, 0x6F, 0x8C
+};
 
 bool add_agent(const uint8_t *mac) {
     if(agent_count >= 2) {
@@ -44,6 +49,9 @@ bool add_agent(const uint8_t *mac) {
 
     memcpy(agents[agent_count].mac, mac, 6);
     agent_count += 1;
+    agents[agent_count - 1].is_encrypted = false;
+    agents[agent_count - 1].is_alive = true;
+    agents[agent_count - 1].last_seen = xTaskGetTickCount();
     return true;
 }
 
@@ -102,9 +110,25 @@ void on_data_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len)
         }
 
         for(int i = 0; i < agent_count; i++) {
+            if(!agents[i].is_encrypted) {
+                esp_now_del_peer(agents[i].mac);
+
+                esp_now_peer_info_t agentPeer;
+                memset(&agentPeer, 0, sizeof(agentPeer));
+                memcpy(agentPeer.peer_addr, info->src_addr, 6);
+                memcpy(agentPeer.lmk, pmk, 16);
+
+                agentPeer.channel = 0;
+                agentPeer.encrypt = true;
+                agents[i].is_encrypted = true;
+
+                esp_now_add_peer(&agentPeer);
+            }
+
             if(memcmp(agents[i].mac, info->src_addr, 6) == 0) {
                 agents[i].last_seen = xTaskGetTickCount();
                 agents[i].is_alive = true;
+
                 printf("Agent (%02X:%02X:%02X:%02X:%02X:%02X) is alive!\n",
                     info->src_addr[0], info->src_addr[1], info->src_addr[2],
                     info->src_addr[3], info->src_addr[4], info->src_addr[5]
@@ -133,6 +157,7 @@ void app_main(void) {
     esp_wifi_start();
 
     ESP_ERROR_CHECK(esp_now_init());
+    ESP_ERROR_CHECK(esp_now_set_pmk(pmk));
 
     esp_now_register_recv_cb(on_data_recv);
 
