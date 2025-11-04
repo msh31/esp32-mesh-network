@@ -13,7 +13,7 @@
 #include "esp_event.h"
 
 typedef struct {
-    uint8_t type; 
+    uint8_t type;
     uint8_t data[63];
 } Message;
 
@@ -62,7 +62,7 @@ void app_main(void) {
 
     esp_now_peer_info_t peer;
     memset(&peer, 0, sizeof(peer)); // sets all bytes to 0 in the peer struct
-    memcpy(peer.peer_addr, "\xFF\xFF\xFF\xFF\xFF\xFF", 6); //copies the broadcast address into the peer address
+    memcpy(peer.peer_addr, "\xFF\xFF\xFF\xFF\xFF\xFF", 6); //copies the broadcast address into the peer address | should definently be updated as this is not secure at all
     peer.channel = 0;  // the radio channel
     peer.encrypt = false;
     esp_now_add_peer(&peer);
@@ -77,21 +77,22 @@ void app_main(void) {
 
         esp_now_send(peer.peer_addr, (uint8_t*)&msg, sizeof(msg));
         printf("Sent discovery message\n");
-        
+
         memset(msg.data, 0, sizeof(msg.data));
-        vTaskDelay(pdMS_TO_TICKS(3000)); 
+        vTaskDelay(pdMS_TO_TICKS(3000));
     }
 
-    printf("connection with handler established!\n");
+    printf("connection with handler established! Waiting 5 seconds before sending heartbeat.\n");
+    vTaskDelay(pdMS_TO_TICKS(1500));
 
-    while(true) { 
+    while(true) {
         Message msg = {0};
         msg.type = 2;
-        
+
         esp_now_send(peer.peer_addr, (uint8_t*)&msg, sizeof(msg));
         printf("Sent heartbeat\n");
-        
-        vTaskDelay(pdMS_TO_TICKS(5000)); 
+
+        vTaskDelay(pdMS_TO_TICKS(5000));
     }
 
 }

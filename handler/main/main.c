@@ -97,7 +97,7 @@ void on_data_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len)
 
     if(msg->type == 2) {
         if(agent_count == 0) {
-            printf("A type2 message was received, but the agent count is at: 0\n");
+            printf("A type2 message was received, but the agent count is at: %d\n", agent_count);
             return;
         }
 
