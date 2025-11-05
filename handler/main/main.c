@@ -35,16 +35,28 @@ uint8_t pmk[16] = {
 };
 
 bool add_agent(const uint8_t *mac) {
-    if(agent_count >= 2) {
-        printf("Max number of agents has been reached!\n");
-        return false;
-    }
-
     for(int i = 0; i < agent_count; i++) {
         if(memcmp(agents[i].mac, mac, 6) == 0) {
+            if(!agents[i].is_alive) {
+                agents[i].is_alive = true;
+                agents[i].last_seen = xTaskGetTickCount();
+                agents[i].is_encrypted = false;
+                printf("Agent (%02X:%02X:%02X:%02X:%02X:%02X) has been revived! they continue to serve!\n",
+                    agents[i].mac[0], agents[i].mac[1], agents[i].mac[2],
+                    agents[i].mac[3], agents[i].mac[4], agents[i].mac[5]
+                );
+
+                return true;
+            }
+
             printf("This agent's mac address already exists!\n");
             return false;
         }
+    }
+
+    if(agent_count >= 2) {
+        printf("Max number of agents has been reached!\n");
+        return false;
     }
 
     memcpy(agents[agent_count].mac, mac, 6);
