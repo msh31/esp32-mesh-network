@@ -179,10 +179,13 @@ void app_main(void) {
         for(int i = 0; i < agent_count; i++) {
             //allow 3 missed beats before declaring deadd
             if((xTaskGetTickCount() - agents[i].last_seen) > pdMS_TO_TICKS(15000) && agents[i].is_alive) {
-                printf("Agent (%02X:%02X:%02X:%02X:%02X:%02X) has passed on, may they rest in peace..\n\n",
+                printf("Agent (%02X:%02X:%02X:%02X:%02X:%02X) has passed on, may they rest in peace.. | ",
                     agents[i].mac[0], agents[i].mac[1], agents[i].mac[2],
                     agents[i].mac[3], agents[i].mac[4], agents[i].mac[5]
                 );
+
+                //ld = long (un)signed int
+                printf("They were last seen at: %ld", agents[i].last_seen);
                 agents[i].is_alive = false;
             }
         }
