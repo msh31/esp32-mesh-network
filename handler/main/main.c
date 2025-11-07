@@ -41,29 +41,35 @@ bool add_agent(const uint8_t *mac) {
                 agents[i].is_alive = true;
                 agents[i].last_seen = xTaskGetTickCount();
                 agents[i].is_encrypted = false;
-                printf("Agent (%02X:%02X:%02X:%02X:%02X:%02X) has been revived! they continue to serve!\n",
+                printf("Agent (%02X:%02X:%02X:%02X:%02X:%02X) has been revived!\n",
                     agents[i].mac[0], agents[i].mac[1], agents[i].mac[2],
                     agents[i].mac[3], agents[i].mac[4], agents[i].mac[5]
                 );
-
                 return true;
+            } else {
+                printf("This agent already exists and is alive\n");
+                return false;
             }
-
-            printf("This agent's mac address already exists!\n");
-            return false;
         }
     }
 
     if(agent_count >= 2) {
-        printf("Max number of agents has been reached!\n");
+        printf("Max number of agents reached!\n");
         return false;
     }
 
     memcpy(agents[agent_count].mac, mac, 6);
-    agent_count += 1;
-    agents[agent_count - 1].is_encrypted = false;
-    agents[agent_count - 1].is_alive = true;
-    agents[agent_count - 1].last_seen = xTaskGetTickCount();
+    agents[agent_count].is_encrypted = false;
+    agents[agent_count].is_alive = true;
+    agents[agent_count].last_seen = xTaskGetTickCount();
+    
+    printf("New agent added! Mac: %02X:%02X:%02X:%02X:%02X:%02X\n",
+        agents[agent_count].mac[0], agents[agent_count].mac[1],
+        agents[agent_count].mac[2], agents[agent_count].mac[3],
+        agents[agent_count].mac[4], agents[agent_count].mac[5]
+    );
+    
+    agent_count++;
     return true;
 }
 
@@ -85,10 +91,7 @@ void on_data_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len)
         }
 
         if(add_agent(info->src_addr)) {
-            printf("New agent added! Mac Address: %02X:%02X:%02X:%02X:%02X:%02X\n",
-    info->src_addr[0], info->src_addr[1], info->src_addr[2],
-    info->src_addr[3], info->src_addr[4], info->src_addr[5]
-            );
+            esp_now_del_peer(info->src_addr);
 
             esp_now_peer_info_t peer;
             memset(&peer, 0, sizeof(peer));
@@ -177,15 +180,29 @@ void app_main(void) {
 
     while(true) {
         for(int i = 0; i < agent_count; i++) {
+            uint32_t elapsed_ticks = xTaskGetTickCount() - agents[i].last_seen;
+            uint32_t elapsed_seconds = elapsed_ticks / configTICK_RATE_HZ; 
+
+
             //allow 3 missed beats before declaring deadd
-            if((xTaskGetTickCount() - agents[i].last_seen) > pdMS_TO_TICKS(15000) && agents[i].is_alive) {
-                printf("Agent (%02X:%02X:%02X:%02X:%02X:%02X) has passed on, may they rest in peace.. | ",
+            if(elapsed_ticks > pdMS_TO_TICKS(15000) && agents[i].is_alive) {
+                printf("Agent (%02X:%02X:%02X:%02X:%02X:%02X) has passed on, may they rest in peace..\n",
                     agents[i].mac[0], agents[i].mac[1], agents[i].mac[2],
                     agents[i].mac[3], agents[i].mac[4], agents[i].mac[5]
                 );
 
-                //ld = long (un)signed int
-                printf("They were last seen at: %ld", agents[i].last_seen);
+                if(elapsed_seconds >= 3600) {
+                    uint32_t hours = elapsed_seconds / 3600;
+                    printf("Agent died after %lu hours\n", hours);
+                } else if(elapsed_seconds >= 60) {
+                    uint32_t minutes = elapsed_seconds / 60;
+                    printf("Agent died after %lu minutes\n", minutes);
+                } else {
+                    printf("Agent died after %lu seconds\n", elapsed_seconds);
+                }
+
+                //ld = long int
+                // printf("They were last seen at: %ld", agents[i].last_seen);
                 agents[i].is_alive = false;
             }
         }
