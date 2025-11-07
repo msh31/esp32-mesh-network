@@ -119,43 +119,48 @@ void on_data_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len)
     }
 
     if(msg->type == 2) {
+        bool found = false;
+
         if(agent_count == 0) {
             printf("A type2 message was received, but the agent count is at: %d\n", agent_count);
             return;
         }
 
         for(int i = 0; i < agent_count; i++) {
-            if(!agents[i].is_encrypted) {
-                esp_now_del_peer(agents[i].mac);
-
-                esp_now_peer_info_t agentPeer;
-                memset(&agentPeer, 0, sizeof(agentPeer));
-                memcpy(agentPeer.peer_addr, info->src_addr, 6);
-                memcpy(agentPeer.lmk, pmk, 16);
-
-                agentPeer.channel = 0;
-                agentPeer.encrypt = true;
-                agents[i].is_encrypted = true;
-
-                esp_now_add_peer(&agentPeer);
-            }
-
             if(memcmp(agents[i].mac, info->src_addr, 6) == 0) {
+                if(!agents[i].is_encrypted) {
+                    esp_now_del_peer(agents[i].mac);
+
+                    esp_now_peer_info_t agentPeer;
+                    memset(&agentPeer, 0, sizeof(agentPeer));
+                    memcpy(agentPeer.peer_addr, info->src_addr, 6);
+                    memcpy(agentPeer.lmk, pmk, 16);
+
+                    agentPeer.channel = 0;
+                    agentPeer.encrypt = true;
+                    agents[i].is_encrypted = true;
+
+                    esp_now_add_peer(&agentPeer);
+                }
+
                 agents[i].last_seen = xTaskGetTickCount();
                 agents[i].is_alive = true;
-
+                found = true;
                 printf("Agent (%02X:%02X:%02X:%02X:%02X:%02X) is alive!\n",
                     info->src_addr[0], info->src_addr[1], info->src_addr[2],
                     info->src_addr[3], info->src_addr[4], info->src_addr[5]
                 );
-                return;
+                break;
             }
+        }
 
+        if(!found) {
             printf("Unknown agent sent heartbeat, source address: %02X:%02X:%02X:%02X:%02X:%02X\n",
                 info->src_addr[0], info->src_addr[1], info->src_addr[2],
                 info->src_addr[3], info->src_addr[4], info->src_addr[5]
             );
         }
+        return;
     }
 }
 

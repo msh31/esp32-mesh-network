@@ -35,7 +35,7 @@ void on_data_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len)
     }
 
     if(msg->type == 0) {
-        printf("well, this shouldn't have happened. closing the connection.");
+        // printf("well, this shouldn't have happened. closing the connection.");
         return;
     }
 
