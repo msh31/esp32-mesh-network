@@ -39,7 +39,7 @@ bool add_agent(const uint8_t *mac) {
         if(memcmp(agents[i].mac, mac, 6) == 0) {
             if(!agents[i].is_alive) {
                 agents[i].is_alive = true;
-                agents[i].last_seen = xTaskGetTickCount();
+                agents[i].last_seen = 0;
                 agents[i].is_encrypted = false;
                 printf("Agent (%02X:%02X:%02X:%02X:%02X:%02X) has been revived!\n",
                     agents[i].mac[0], agents[i].mac[1], agents[i].mac[2],
@@ -68,7 +68,8 @@ bool add_agent(const uint8_t *mac) {
         agents[agent_count].mac[2], agents[agent_count].mac[3],
         agents[agent_count].mac[4], agents[agent_count].mac[5]
     );
-    
+   
+    agents[agent_count].last_seen = 0;
     agent_count++;
     return true;
 }
@@ -188,6 +189,9 @@ void app_main(void) {
             uint32_t elapsed_ticks = xTaskGetTickCount() - agents[i].last_seen;
             uint32_t elapsed_seconds = elapsed_ticks / configTICK_RATE_HZ; 
 
+            if(agents[i].last_seen == 0) {
+                continue; 
+            }
 
             //allow 3 missed beats before declaring deadd
             if(elapsed_ticks > pdMS_TO_TICKS(15000) && agents[i].is_alive) {
