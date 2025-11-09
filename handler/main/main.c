@@ -28,11 +28,63 @@ struct Agent {
 
 struct Agent agents[2];
 int agent_count = 0;
+
 const char *discovery_secret = "TkFLRURfU05BS0U=";
 uint8_t pmk[16] = {
     0xF3, 0x26, 0xA5, 0xC3, 0x9C, 0xC0, 0x8E, 0xC0,
     0x15, 0xAB, 0x90, 0x69, 0x8C, 0x7E, 0x6F, 0x8C
 };
+
+enum CommandType {
+    CMD_LED_TOGGLE = 0,
+    CMD_REBOOT = 1,
+    CMD_SYSTEM_INFO = 2,
+    CMD_WIFI_SCAN = 3
+};
+
+void monitor_task(void *pvParameters) {
+     printf("Running monitoring task on core: %d\n", xPortGetCoreID());
+
+    while(true) {
+        for(int i = 0; i < agent_count; i++) {
+            uint32_t elapsed_ticks = xTaskGetTickCount() - agents[i].last_seen;
+            uint32_t elapsed_seconds = elapsed_ticks / configTICK_RATE_HZ;
+
+            if(agents[i].last_seen == 0) {
+                continue;
+            }
+
+            //allow 3 missed beats before declaring deadd
+            if(elapsed_ticks > pdMS_TO_TICKS(15000) && agents[i].is_alive) {
+                printf("Agent (%02X:%02X:%02X:%02X:%02X:%02X) has passed on, may they rest in peace..\n",
+                    agents[i].mac[0], agents[i].mac[1], agents[i].mac[2],
+                    agents[i].mac[3], agents[i].mac[4], agents[i].mac[5]
+                );
+
+                if(elapsed_seconds >= 3600) {
+                    uint32_t hours = elapsed_seconds / 3600;
+                    printf("Agent died after %lu hours\n", hours);
+                } else if(elapsed_seconds >= 60) {
+                    uint32_t minutes = elapsed_seconds / 60;
+                    printf("Agent died after %lu minutes\n", minutes);
+                } else {
+                    printf("Agent died after %lu seconds\n", elapsed_seconds);
+                }
+
+                //ld = long int
+                // printf("They were last seen at: %ld", agents[i].last_seen);
+                agents[i].is_alive = false;
+            }
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(5000));
+    }
+}
+
+void cli_task(void *pvParameters) {
+    printf("Running CLI task on core: %d\n", xPortGetCoreID());
+
+}
 
 bool add_agent(const uint8_t *mac) {
     for(int i = 0; i < agent_count; i++) {
@@ -62,13 +114,13 @@ bool add_agent(const uint8_t *mac) {
     agents[agent_count].is_encrypted = false;
     agents[agent_count].is_alive = true;
     agents[agent_count].last_seen = xTaskGetTickCount();
-    
+
     printf("New agent added! Mac: %02X:%02X:%02X:%02X:%02X:%02X\n",
         agents[agent_count].mac[0], agents[agent_count].mac[1],
         agents[agent_count].mac[2], agents[agent_count].mac[3],
         agents[agent_count].mac[4], agents[agent_count].mac[5]
     );
-   
+
     agents[agent_count].last_seen = 0;
     agent_count++;
     return true;
@@ -184,38 +236,6 @@ void app_main(void) {
 
     printf("Wifi Initialized!\n");
 
-    while(true) {
-        for(int i = 0; i < agent_count; i++) {
-            uint32_t elapsed_ticks = xTaskGetTickCount() - agents[i].last_seen;
-            uint32_t elapsed_seconds = elapsed_ticks / configTICK_RATE_HZ; 
-
-            if(agents[i].last_seen == 0) {
-                continue; 
-            }
-
-            //allow 3 missed beats before declaring deadd
-            if(elapsed_ticks > pdMS_TO_TICKS(15000) && agents[i].is_alive) {
-                printf("Agent (%02X:%02X:%02X:%02X:%02X:%02X) has passed on, may they rest in peace..\n",
-                    agents[i].mac[0], agents[i].mac[1], agents[i].mac[2],
-                    agents[i].mac[3], agents[i].mac[4], agents[i].mac[5]
-                );
-
-                if(elapsed_seconds >= 3600) {
-                    uint32_t hours = elapsed_seconds / 3600;
-                    printf("Agent died after %lu hours\n", hours);
-                } else if(elapsed_seconds >= 60) {
-                    uint32_t minutes = elapsed_seconds / 60;
-                    printf("Agent died after %lu minutes\n", minutes);
-                } else {
-                    printf("Agent died after %lu seconds\n", elapsed_seconds);
-                }
-
-                //ld = long int
-                // printf("They were last seen at: %ld", agents[i].last_seen);
-                agents[i].is_alive = false;
-            }
-        }
-
-        vTaskDelay(pdMS_TO_TICKS(5000));
-    }
+    xTaskCreatePinnedToCore(monitor_task, "MonitorTask", 2048, NULL, 5, NULL, 0);
+    xTaskCreatePinnedToCore(cli_task, "CommandLineTask", 2048, NULL, 5, NULL, 1);
 }
