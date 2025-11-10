@@ -117,6 +117,11 @@ void cli_task(void *pvParameters) {
                             );
                         }
                     }
+                } else if (strcmp(command, "help")) {
+                    printf("\n\n==LIST OF COMMANDS==\n\n");
+                    printf("1. List - lists the conneccted agents\n");
+                    printf("2. reboot {1/2} - reboot an agent with the agent ID as a paramater\n");
+                    printf("3. led {1/2} - toggle the built-in LED of an agent with the agent ID as a param.\n\n");
                 } else {
                     printf("Unknown command\n");
                 }
