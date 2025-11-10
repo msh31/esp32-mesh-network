@@ -90,6 +90,7 @@ void cli_task(void *pvParameters) {
 
     while(true) {
         int c = getchar();
+        enum CommandType cmdType;
 
         if(c != EOF) {
             if(c == '\n' || c == '\r') {  // enter pressed
@@ -99,10 +100,14 @@ void cli_task(void *pvParameters) {
                 int agent_id;
                 sscanf(input_buffer, "%s %d", command, &agent_id);
 
+                Message cmd_msg;
+                cmd_msg.type = 3;
+
                 if(strcmp(command, "led") == 0) {
-                    // LED command
+
+
                 } else if(strcmp(command, "reboot") == 0) {
-                    // TODO
+
                 } else if(strcmp(command, "list") == 0) {
                     if (agent_count == 0) {
                         printf("No agents found!\n");
@@ -117,7 +122,7 @@ void cli_task(void *pvParameters) {
                             );
                         }
                     }
-                } else if (strcmp(command, "help")) {
+                } else if (strcmp(command, "help") == 0) {
                     printf("\n\n==LIST OF COMMANDS==\n\n");
                     printf("1. List - lists the conneccted agents\n");
                     printf("2. reboot {1/2} - reboot an agent with the agent ID as a paramater\n");
