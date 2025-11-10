@@ -83,7 +83,53 @@ void monitor_task(void *pvParameters) {
 
 void cli_task(void *pvParameters) {
     printf("Running CLI task on core: %d\n", xPortGetCoreID());
+    printf("CLI ready. Type commands:\n");
 
+    char input_buffer[64];
+    int pos = 0;
+
+    while(true) {
+        int c = getchar();
+
+        if(c != EOF) {
+            if(c == '\n' || c == '\r') {  // enter pressed
+                input_buffer[pos] = '\0';  // null terminate
+
+                char command[32];
+                int agent_id;
+                sscanf(input_buffer, "%s %d", command, &agent_id);
+
+                if(strcmp(command, "led") == 0) {
+                    // LED command
+                } else if(strcmp(command, "reboot") == 0) {
+                    // TODO
+                } else if(strcmp(command, "list") == 0) {
+                    if (agent_count == 0) {
+                        printf("No agents found!\n");
+                    } else {
+                        printf("\nConnected agents:\n");
+                        for(int i = 0; i < agent_count; i++) {
+                            printf("Agent %d: %02X:%02X:%02X:%02X:%02X:%02X - %s\n",
+                                i,
+                                agents[i].mac[0], agents[i].mac[1], agents[i].mac[2],
+                                agents[i].mac[3], agents[i].mac[4], agents[i].mac[5],
+                                agents[i].is_alive ? "ALIVE" : "DEAD"
+                            );
+                        }
+                    }
+                } else {
+                    printf("Unknown command\n");
+                }
+
+                pos = 0;  // reset for next command
+            } else if(pos < 63) {
+                input_buffer[pos++] = c;
+                printf("%c", c);
+                fflush(stdout);
+            }
+        }
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
 }
 
 bool add_agent(const uint8_t *mac) {
