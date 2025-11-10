@@ -123,8 +123,11 @@ void cli_task(void *pvParameters) {
 
                     if(agents[agent_id].is_encrypted) {
                         cmd_msg.data[0] = CMD_REBOOT;
-
                         esp_now_send(agents[agent_id].mac, (uint8_t*)&cmd_msg, sizeof(cmd_msg));
+
+                        agents[agent_id].is_alive = false;
+                        agents[agent_id].is_encrypted = false;
+                        esp_now_del_peer(agents[agent_id].mac); //insurnce
                     } else {
                         printf("agent %d does not have an encrypted connection...\n", agent_id);
                         continue;
