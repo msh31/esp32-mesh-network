@@ -26,6 +26,13 @@ uint8_t pmk[16] = {
 };
 uint8_t handlerMac[6];
 
+enum CommandType {
+    CMD_LED_TOGGLE = 0,
+    CMD_REBOOT = 1,
+    CMD_SYSTEM_INFO = 2,
+    CMD_WIFI_SCAN = 3
+};
+
 void on_data_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len) {
     const Message *msg = (const Message *)data;
 
@@ -56,7 +63,12 @@ void on_data_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len)
     }
 
     if(msg->type == 3) {
+        int commandType = msg->data[0];
 
+        if(commandType == CMD_REBOOT) {
+            printf("reboot command received from handler! rebooting now..");
+            esp_restart();
+        }
     }
 }
 

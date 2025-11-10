@@ -90,27 +90,48 @@ void cli_task(void *pvParameters) {
 
     while(true) {
         int c = getchar();
-        enum CommandType cmdType;
 
         if(c != EOF) {
             if(c == '\n' || c == '\r') {  // enter pressed
                 input_buffer[pos] = '\0';  // null terminate
 
                 char command[32];
-                int agent_id;
-                sscanf(input_buffer, "%s %d", command, &agent_id);
+                int agent_id = -1;
+                sscanf(input_buffer, "%s", command);
 
                 Message cmd_msg;
                 cmd_msg.type = 3;
 
-                if(strcmp(command, "led") == 0) {
+                if(strcmp(command, "reboot") == 0 || strcmp(command, "led") == 0) {
+                    int parsed = sscanf(input_buffer, "%s %d", command, &agent_id);
 
+                    if(parsed != 2) {
+                        printf("Usage: %s <agent_id>\n", command);
+                        pos = 0;
+                        continue;
+                    }
 
-                } else if(strcmp(command, "reboot") == 0) {
+                    if(agent_id >= agent_count) {
+                        printf("agent %d does not exist\n", agent_id);
+                        continue; //skip to next interation
+                    }
 
+                    if(!agents[agent_id].is_alive) {
+                        printf("Agent %d is dead..\n", agent_id);
+                        continue;
+                    }
+
+                    if(agents[agent_id].is_encrypted) {
+                        cmd_msg.data[0] = CMD_REBOOT;
+
+                        esp_now_send(agents[agent_id].mac, (uint8_t*)&cmd_msg, sizeof(cmd_msg));
+                    } else {
+                        printf("agent %d does not have an encrypted connection...\n", agent_id);
+                        continue;
+                    }
                 } else if(strcmp(command, "list") == 0) {
                     if (agent_count == 0) {
-                        printf("No agents found!\n");
+                        printf("\nNo agents found!\n");
                     } else {
                         printf("\nConnected agents:\n");
                         for(int i = 0; i < agent_count; i++) {
