@@ -49,6 +49,15 @@ void on_data_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len)
         memcpy(handlerMac, info->src_addr, 6);
         is_connected = true;
     }
+
+    //other agents heartbeats, should be an edge-case
+    if(msg->type == 2) {
+        return;
+    }
+
+    if(msg->type == 3) {
+
+    }
 }
 
 void app_main(void) {
