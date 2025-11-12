@@ -17,7 +17,7 @@ typedef struct {
     uint8_t data[63];
 } Message;
 
-const char *discovery_secret = "TkFLRURfU05BS0U=";
+const char *discovery_secret = "TkFLRURfU05BS0U="; //stupid..
 bool is_connected = false;
 bool peer_upgraded = false;
 uint8_t pmk[16] = {
@@ -48,7 +48,7 @@ void on_data_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len)
 
     if(msg->type == 1) {
         if(memcmp(msg->data, discovery_secret, strlen(discovery_secret)) != 0) {
-            printf("Invalid secret, rejecting agent\n");
+            printf("Invalid secret, rejecting handler\n");
             return;
         }
 
@@ -66,7 +66,8 @@ void on_data_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len)
         int commandType = msg->data[0];
 
         if(commandType == CMD_REBOOT) {
-            printf("reboot command received from handler! rebooting now..");
+            printf("reboot command received from handler! rebooting in 3 seconds..");
+            vTaskDelay(pdMS_TO_TICKS(3000));
             esp_restart();
         }
     }
