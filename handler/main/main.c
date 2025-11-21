@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "esp_log_level.h"
 #include "esp_wifi_types_generic.h"
 #include "freertos/FreeRTOS.h" // open-source real-0time OS on the ESP32
 #include "freertos/task.h"
@@ -11,6 +12,7 @@
 #include "esp_now.h"
 #include "esp_netif.h"
 #include "esp_event.h"
+#include "esp_log.h"
 
 // 64 bytes, 1 for the type, 3 for the data sent alongside
 // typedef is just an alias to we can use 'Message' instead of 'struct Message'
@@ -56,19 +58,19 @@ void monitor_task(void *pvParameters) {
 
             //allow 3 missed beats before declaring deadd
             if(elapsed_ticks > pdMS_TO_TICKS(15000) && agents[i].is_alive) {
-                printf("Agent (%02X:%02X:%02X:%02X:%02X:%02X) has passed on, may they rest in peace..\n",
+                ESP_LOGI("MONITOR", "(%02X:%02X:%02X:%02X:%02X:%02X) has passed on, may they rest in peace..\n",
                     agents[i].mac[0], agents[i].mac[1], agents[i].mac[2],
                     agents[i].mac[3], agents[i].mac[4], agents[i].mac[5]
                 );
 
                 if(elapsed_seconds >= 3600) {
                     uint32_t hours = elapsed_seconds / 3600;
-                    printf("Agent died after %lu hours\n", hours);
+                    ESP_LOGW("MONITOR", "Agent died after %lu hours\n", hours);
                 } else if(elapsed_seconds >= 60) {
                     uint32_t minutes = elapsed_seconds / 60;
-                    printf("Agent died after %lu minutes\n", minutes);
+                    ESP_LOGW("MONITOR", "Agent died after %lu minutes\n", minutes);
                 } else {
-                    printf("Agent died after %lu seconds\n", elapsed_seconds);
+                    ESP_LOGW("MONITOR", "Agent died after %lu seconds\n", elapsed_seconds);
                 }
 
                 //ld = long int
@@ -82,8 +84,8 @@ void monitor_task(void *pvParameters) {
 }
 
 void cli_task(void *pvParameters) {
-    printf("Running CLI task on core: %d\n", xPortGetCoreID());
-    printf("CLI ready. Type commands:\n");
+    ESP_LOGI("CLI", "Running CLI task on core: %d\n", xPortGetCoreID());
+    ESP_LOGI("CLI", "CLI ready. Type commands:\n");
 
     char input_buffer[64];
     int pos = 0;
@@ -106,18 +108,18 @@ void cli_task(void *pvParameters) {
                     int parsed = sscanf(input_buffer, "%s %d", command, &agent_id);
 
                     if(parsed != 2) {
-                        printf("Usage: %s <agent_id>\n", command);
+                        ESP_LOGI("CLI", "Usage: %s <agent_id>\n", command);
                         pos = 0;
                         continue;
                     }
 
                     if(agent_id >= agent_count) {
-                        printf("agent %d does not exist\n", agent_id);
+                        ESP_LOGE("CLI", "agent %d does not exist\n", agent_id);
                         continue; //skip to next interation
                     }
 
                     if(!agents[agent_id].is_alive) {
-                        printf("Agent %d is dead..\n", agent_id);
+                        ESP_LOGE("CLI", "Agent %d is dead..\n", agent_id);
                         continue;
                     }
 
@@ -129,16 +131,16 @@ void cli_task(void *pvParameters) {
                         agents[agent_id].is_encrypted = false;
                         esp_now_del_peer(agents[agent_id].mac); //insurnce
                     } else {
-                        printf("agent %d does not have an encrypted connection...\n", agent_id);
+                        ESP_LOGE("CLI", "agent %d does not have an encrypted connection...\n", agent_id);
                         continue;
                     }
                 } else if(strcmp(command, "list") == 0) {
                     if (agent_count == 0) {
-                        printf("\nNo agents found!\n");
+                        ESP_LOGW("CLI", "\nNo agents found!\n");
                     } else {
-                        printf("\nConnected agents:\n");
+                        ESP_LOGI("CLI", "\nConnected agents:\n");
                         for(int i = 0; i < agent_count; i++) {
-                            printf("Agent %d: %02X:%02X:%02X:%02X:%02X:%02X - %s\n",
+                            ESP_LOGI("CLI", "Agent %d: %02X:%02X:%02X:%02X:%02X:%02X - %s\n",
                                 i,
                                 agents[i].mac[0], agents[i].mac[1], agents[i].mac[2],
                                 agents[i].mac[3], agents[i].mac[4], agents[i].mac[5],
@@ -147,12 +149,12 @@ void cli_task(void *pvParameters) {
                         }
                     }
                 } else if (strcmp(command, "help") == 0) {
-                    printf("\n\n==LIST OF COMMANDS==\n\n");
-                    printf("1. List - lists the conneccted agents\n");
-                    printf("2. reboot {1/2} - reboot an agent with the agent ID as a paramater\n");
-                    printf("3. led {1/2} - toggle the built-in LED of an agent with the agent ID as a param.\n\n");
+                    ESP_LOGI("CLI", "\n\n==LIST OF COMMANDS==\n\n");
+                    ESP_LOGI("CLI", "1. List - lists the conneccted agents\n");
+                    ESP_LOGI("CLI", "2. reboot {1/2} - reboot an agent with the agent ID as a paramater\n");
+                    ESP_LOGI("CLI", "3. led {1/2} - toggle the built-in LED of an agent with the agent ID as a param.\n\n");
                 } else {
-                    printf("Unknown command\n");
+                    ESP_LOGW("CLI", "Unknown command\n");
                 }
 
                 pos = 0;  // reset for next command
@@ -173,20 +175,20 @@ bool add_agent(const uint8_t *mac) {
                 agents[i].is_alive = true;
                 agents[i].last_seen = 0;
                 agents[i].is_encrypted = false;
-                printf("Agent (%02X:%02X:%02X:%02X:%02X:%02X) has been revived!\n",
+                ESP_LOGW("MONITOR", "Agent (%02X:%02X:%02X:%02X:%02X:%02X) has been revived!\n",
                     agents[i].mac[0], agents[i].mac[1], agents[i].mac[2],
                     agents[i].mac[3], agents[i].mac[4], agents[i].mac[5]
                 );
                 return true;
             } else {
-                printf("This agent already exists and is alive\n");
+                ESP_LOGI("MONITOR", "This agent already exists and is alive\n");
                 return false;
             }
         }
     }
 
     if(agent_count >= 2) {
-        printf("Max number of agents reached!\n");
+        ESP_LOGI("MONITOR", "Max number of agents reached!\n");
         return false;
     }
 
@@ -195,7 +197,7 @@ bool add_agent(const uint8_t *mac) {
     agents[agent_count].is_alive = true;
     agents[agent_count].last_seen = xTaskGetTickCount();
 
-    printf("New agent added! Mac: %02X:%02X:%02X:%02X:%02X:%02X\n",
+    ESP_LOGW("MONITOR", "New agent added! Mac: %02X:%02X:%02X:%02X:%02X:%02X\n",
         agents[agent_count].mac[0], agents[agent_count].mac[1],
         agents[agent_count].mac[2], agents[agent_count].mac[3],
         agents[agent_count].mac[4], agents[agent_count].mac[5]
@@ -210,7 +212,7 @@ void on_data_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len)
     const Message *msg = (const Message *)data;
 
     if(len != sizeof(Message)) {
-        printf("Received invalid message.");
+        //printf("Received invalid message.");
         return;
     }
 
@@ -238,16 +240,16 @@ void on_data_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len)
             memcpy(ack_msg.data, discovery_secret, strlen(discovery_secret));
 
             esp_now_send(info->src_addr, (uint8_t*)&ack_msg, sizeof(ack_msg));
-            printf("Sent acknowledgment\n");
+            ESP_LOGW("MONITOR", "Sent acknowledgment\n");
         }
     }
 
     // handlers should NOT bbe able to RECEIVE a type1 message..
     if(msg->type == 1) {
-        printf("What the flip? A type1 message was *received*.... source: %02X:%02X:%02X:%02X:%02X:%02X\n",
-            info->src_addr[0], info->src_addr[1], info->src_addr[2],
-            info->src_addr[3], info->src_addr[4], info->src_addr[5]
-        );
+        // printf("What the flip? A type1 message was *received*.... source: %02X:%02X:%02X:%02X:%02X:%02X\n",
+        //     info->src_addr[0], info->src_addr[1], info->src_addr[2],
+        //     info->src_addr[3], info->src_addr[4], info->src_addr[5]
+        // );
         return;
     }
 
@@ -255,7 +257,7 @@ void on_data_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len)
         bool found = false;
 
         if(agent_count == 0) {
-            printf("A type2 message was received, but the agent count is at: %d\n", agent_count);
+            ESP_LOGE("MONITOR", "A type2 message was received, but the agent count is at: %d\n", agent_count);
             return;
         }
 
@@ -279,16 +281,16 @@ void on_data_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len)
                 agents[i].last_seen = xTaskGetTickCount();
                 agents[i].is_alive = true;
                 found = true;
-                printf("Agent (%02X:%02X:%02X:%02X:%02X:%02X) is alive!\n",
-                    info->src_addr[0], info->src_addr[1], info->src_addr[2],
-                    info->src_addr[3], info->src_addr[4], info->src_addr[5]
-                );
+                // printf("Agent (%02X:%02X:%02X:%02X:%02X:%02X) is alive!\n",
+                //     info->src_addr[0], info->src_addr[1], info->src_addr[2],
+                //     info->src_addr[3], info->src_addr[4], info->src_addr[5]
+                // );
                 break;
             }
         }
 
         if(!found) {
-            printf("Unknown agent sent heartbeat, source address: %02X:%02X:%02X:%02X:%02X:%02X\n",
+            ESP_LOGW("MONITOR", "Unknown agent sent heartbeat, source address: %02X:%02X:%02X:%02X:%02X:%02X\n",
                 info->src_addr[0], info->src_addr[1], info->src_addr[2],
                 info->src_addr[3], info->src_addr[4], info->src_addr[5]
             );
@@ -315,6 +317,9 @@ void app_main(void) {
     esp_now_register_recv_cb(on_data_recv);
 
     printf("Wifi Initialized!\n");
+
+    esp_log_level_set("MONITOR", ESP_LOG_WARN);
+    esp_log_level_set("CLI", ESP_LOG_INFO);
 
     xTaskCreatePinnedToCore(monitor_task, "MonitorTask", 2048, NULL, 5, NULL, 0);
     xTaskCreatePinnedToCore(cli_task, "CommandLineTask", 2048, NULL, 5, NULL, 1);

@@ -56,7 +56,10 @@ void on_data_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len)
         //     // printf("Invalid secret, rejecting handler\n");
         //     return;
         // }
+    
 
+        //this is all pointless now that we dont use a shared key and instead
+        // we hardcode the mac. will fix later.
         printf("Acknowledgment received from coordinator!\n");
         memcpy(handlerMac, info->src_addr, 6);
         is_connected = true;
