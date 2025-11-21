@@ -17,14 +17,14 @@ typedef struct {
     uint8_t data[63];
 } Message;
 
-const char *discovery_secret = "TkFLRURfU05BS0U="; //stupid..
+// const char *discovery_secret = "TkFLRURfU05BS0U="; //stupid..
 bool is_connected = false;
 bool peer_upgraded = false;
 uint8_t pmk[16] = {
     0xF3, 0x26, 0xA5, 0xC3, 0x9C, 0xC0, 0x8E, 0xC0,
     0x15, 0xAB, 0x90, 0x69, 0x8C, 0x7E, 0x6F, 0x8C
 };
-uint8_t handlerMac[6];
+uint8_t handlerMac[6] = {0xF0, 0x24, 0xF9, 0x0E, 0x01, 0xB8};
 
 enum CommandType {
     CMD_LED_TOGGLE = 0,
@@ -41,16 +41,21 @@ void on_data_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len)
         return;
     }
 
+    if (memcmp(info->src_addr, handlerMac, 6) != 0) {
+        printf("Ignoring message from unknown MAC");
+        return;
+    }
+
     if(msg->type == 0) {
         // printf("well, this shouldn't have happened. closing the connection.");
         return;
     }
 
     if(msg->type == 1) {
-        if(memcmp(msg->data, discovery_secret, strlen(discovery_secret)) != 0) {
-            printf("Invalid secret, rejecting handler\n");
-            return;
-        }
+        // if(memcmp(handlerMac, info->src_addr, 6)) {
+        //     // printf("Invalid secret, rejecting handler\n");
+        //     return;
+        // }
 
         printf("Acknowledgment received from coordinator!\n");
         memcpy(handlerMac, info->src_addr, 6);
@@ -104,7 +109,7 @@ void app_main(void) {
     while(!is_connected) {
         Message msg;
         msg.type = 0;
-        memcpy(msg.data, discovery_secret, strlen(discovery_secret));
+        // memcpy(msg.data, discovery_secret, strlen(discovery_secret)); //secret is unused rn
         // printf("Sending secret: %.*s (length: %zu)\n", (int)strlen(discovery_secret), msg.data, strlen(discovery_secret));
 
         esp_now_send(peer.peer_addr, (uint8_t*)&msg, sizeof(msg));
