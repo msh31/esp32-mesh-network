@@ -44,6 +44,13 @@ enum CommandType {
     CMD_WIFI_SCAN = 3
 };
 
+enum MessageType {
+    DISCOVERY_MSG = 0,
+    HANDSHAKE_MSG = 1,
+    HEARTBEAT_MSG = 2,
+    CUSTOM_MSG = 3
+};
+
 void monitor_task(void *pvParameters) {
      printf("Running monitoring task on core: %d\n", xPortGetCoreID());
 
@@ -151,8 +158,8 @@ void cli_task(void *pvParameters) {
                 } else if (strcmp(command, "help") == 0) {
                     ESP_LOGI("CLI", "\n\n==LIST OF COMMANDS==\n\n");
                     ESP_LOGI("CLI", "1. List - lists the conneccted agents\n");
-                    ESP_LOGI("CLI", "2. reboot {1/2} - reboot an agent with the agent ID as a paramater\n");
-                    ESP_LOGI("CLI", "3. led {1/2} - toggle the built-in LED of an agent with the agent ID as a param.\n\n");
+                    ESP_LOGI("CLI", "2. reboot {id} - reboot an agent with the agent ID as a paramater\n");
+                    ESP_LOGI("CLI", "3. led {id} - toggle the built-in LED of an agent with the agent ID as a param.\n\n");
                 } else {
                     ESP_LOGW("CLI", "Unknown command\n");
                 }
@@ -216,12 +223,12 @@ void on_data_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len)
         return;
     }
 
-    if(msg->type == 0) {
+    if(msg->type == DISCOVERY_MSG) {
         // printf("Received data: %.*s (length: %d)\n", (int)strlen(discovery_secret), msg->data, (int)strlen(discovery_secret));
         // printf("Expected secret: %s (length: %zu)\n", discovery_secret, strlen(discovery_secret));
 
         if(memcmp(msg->data, discovery_secret, strlen(discovery_secret)) != 0) {
-            printf("Invalid secret, rejecting agent\n");
+            ESP_LOGW("MONITOR", "Invalid secret, rejecting agent\n");
             return;
         }
 
@@ -245,7 +252,7 @@ void on_data_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len)
     }
 
     // handlers should NOT bbe able to RECEIVE a type1 message..
-    if(msg->type == 1) {
+    if(msg->type == HANDSHAKE_MSG) {
         // printf("What the flip? A type1 message was *received*.... source: %02X:%02X:%02X:%02X:%02X:%02X\n",
         //     info->src_addr[0], info->src_addr[1], info->src_addr[2],
         //     info->src_addr[3], info->src_addr[4], info->src_addr[5]
@@ -253,7 +260,7 @@ void on_data_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len)
         return;
     }
 
-    if(msg->type == 2) {
+    if(msg->type == HEARTBEAT_MSG) {
         bool found = false;
 
         if(agent_count == 0) {

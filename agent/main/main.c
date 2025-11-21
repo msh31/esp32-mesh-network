@@ -33,6 +33,13 @@ enum CommandType {
     CMD_WIFI_SCAN = 3
 };
 
+enum MessageType {
+    DISCOVERY_MSG = 0,
+    HANDSHAKE_MSG = 1,
+    HEARTBEAT_MSG = 2,
+    CUSTOM_MSG = 3
+};
+
 void on_data_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len) {
     const Message *msg = (const Message *)data;
 
@@ -46,17 +53,17 @@ void on_data_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len)
         return;
     }
 
-    if(msg->type == 0) {
+    if(msg->type == DISCOVERY_MSG) {
         // printf("well, this shouldn't have happened. closing the connection.");
         return;
     }
 
-    if(msg->type == 1) {
+    if(msg->type == HANDSHAKE_MSG) {
         // if(memcmp(handlerMac, info->src_addr, 6)) {
         //     // printf("Invalid secret, rejecting handler\n");
         //     return;
         // }
-    
+
 
         //this is all pointless now that we dont use a shared key and instead
         // we hardcode the mac. will fix later.
@@ -66,11 +73,11 @@ void on_data_recv(const esp_now_recv_info_t *info, const uint8_t *data, int len)
     }
 
     //other agents heartbeats, should be an edge-case
-    if(msg->type == 2) {
+    if(msg->type == HEARTBEAT_MSG) {
         return;
     }
 
-    if(msg->type == 3) {
+    if(msg->type == CUSTOM_MSG) {
         int commandType = msg->data[0];
 
         if(commandType == CMD_REBOOT) {
